@@ -1,0 +1,106 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model User {
+  id                String     @id @default(cuid())
+  name              String?
+  email             String?    @unique
+  emailVerified     DateTime?
+  image             String?
+  plan              Plan       @default(FREE)
+  quotaUsedThisWeek Int        @default(0)
+  quotaWeekStart    DateTime   @default(now())
+  lockedRegion      String     @default("Toronto")
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+  accounts          Account[]
+  sessions          Session[]
+  userLeads         UserLead[]
+}
+
+model Lead {
+  id        String     @id @default(cuid())
+  company   String
+  city      String
+  why       String
+  proof     String
+  seenDays  Int
+  grade     Grade
+  createdAt DateTime   @default(now())
+  userLeads UserLead[]
+}
+
+model UserLead {
+  id        String   @id @default(cuid())
+  userId    String
+  leadId    String
+  status    Status   @default(NEW)
+  notes     String?
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+  lead      Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, leadId])
+}
+
+enum Plan {
+  FREE
+  PRO
+}
+
+enum Status {
+  NEW
+  CONTACTED
+  CALLBACK
+  MEETING
+  WON
+  NOT_NOW
+}
+
+enum Grade {
+  EXCELLENT
+  VERY_STRONG
+  STRONG
+  WEAK
+}
