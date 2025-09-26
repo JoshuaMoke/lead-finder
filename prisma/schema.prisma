@@ -1,12 +1,63 @@
-// prisma/schema.prisma
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Activity {
+  id      String       @id
+  type    ActivityType
+  summary String
+  when    DateTime     @default(now())
+  leadId  String
+  Lead    Lead         @relation(fields: [leadId], references: [id], onDelete: Cascade)
+}
+
+model Lead {
+  id        String     @id
+  city      String?
+  createdAt DateTime   @default(now())
+  email     String?    @db.VarChar(255)
+  name      String
+  phone     String?    @db.VarChar(30)
+  province  String?
+  score     Int        @default(0)
+  source    String?
+  status    LeadStatus @default(NEW)
+  updatedAt DateTime
+  website   String?    @db.VarChar(255)
+  Activity  Activity[]
+  LeadTag   LeadTag[]
+
+  @@index([score])
+  @@index([status])
+}
+
+model LeadTag {
+  leadId String
+  tagId  String
+  Lead   Lead   @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  Tag    Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([leadId, tagId])
+}
+
+model Tag {
+  id        String    @id
+  label     String    @unique
+  createdAt DateTime  @default(now())
+  LeadTag   LeadTag[]
+}
+
+enum ActivityType {
+  CALL
+  EMAIL
+  VISIT
+  NOTE
 }
 
 enum LeadStatus {
@@ -17,58 +68,4 @@ enum LeadStatus {
   BOOKED
   WON
   LOST
-}
-
-enum ActivityType {
-  CALL
-  EMAIL
-  VISIT
-  NOTE
-}
-
-model Lead {
-  id         String       @id @default(cuid())
-  name       String
-  phone      String?      @db.VarChar(30)
-  email      String?      @db.VarChar(255)
-  website    String?      @db.VarChar(255)
-  city       String?
-  province   String?
-  source     String?
-  score      Int          @default(0)
-  status     LeadStatus   @default(NEW)
-  createdAt  DateTime     @default(now())
-  updatedAt  DateTime     @updatedAt
-
-  activities Activity[]
-  tags       LeadTag[]
-
-  @@index([status])
-  @@index([score])
-}
-
-model Tag {
-  id        String    @id @default(cuid())
-  label     String    @unique
-  createdAt DateTime  @default(now())
-  leads     LeadTag[]
-}
-
-model LeadTag {
-  leadId String
-  tagId  String
-
-  lead Lead @relation(fields: [leadId], references: [id], onDelete: Cascade)
-  tag  Tag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
-
-  @@id([leadId, tagId])
-}
-
-model Activity {
-  id      String       @id @default(cuid())
-  type    ActivityType
-  summary String
-  when    DateTime     @default(now())
-  leadId  String
-  lead    Lead         @relation(fields: [leadId], references: [id], onDelete: Cascade)
 }
